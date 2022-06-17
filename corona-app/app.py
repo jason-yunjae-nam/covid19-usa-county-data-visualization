@@ -1,27 +1,24 @@
 from datetime import date
-import dash
-from dash import dcc
-from dash import html
-import plotly.graph_objects as go
+# import dash
+# from dash import dcc
+# from dash import html
+# import plotly.graph_objects as go
 import plotly.express as px
-from dash.dependencies import Input, Output
+# from dash.dependencies import Input, Output
 import pandas as pd
-import pycountry
-import addfips
+# import addfips
 
-af = addfips.AddFIPS()
+# from urllib.request import urlopen
+import json
+
+with open('geojson-counties-fips.json') as response:
+    counties = json.load(response)
 
 def loadData(fileName):
-    data = pd.read_csv(fileName)
-    data = data.drop(columns=['UID','iso2','iso3','code3','Province_State','Combined_Key','Country_Region','Lat','Long_'])
-    data = data.groupby(['FIPS', 'Admin2']).agg('sum')
-    return data
-
-# def find_iso(name):
-#     try:
-#         return pycountry.countries.lookup(name).alpha_3
-#     except:
-#         return None
+    df = pd.read_csv(fileName)
+    df = df.drop(columns=['UID','iso2','iso3','code3','Province_State','Combined_Key','Country_Region','Lat','Long_'])
+    df = df.groupby(['FIPS', 'Admin2']).agg('sum')
+    return df
 
 def find_fips(name):
     try:
@@ -29,31 +26,36 @@ def find_fips(name):
     except:
         return None
 
-def melt(df, date_list):
-    return pd.melt(df, id_vars=['fips', 'county'], value_vars=date_list)
-
 df = loadData('time_series_covid19_confirmed_US.csv')
 
-df['fips_int'] = df.index.get_level_values('FIPS')
+date_list1 = list(df.columns)
+date_list = date_list1[::len(date_list1)//24]
+
+df['fips'] = df.index.get_level_values('FIPS')
 df['county'] = df.index.get_level_values('Admin2')
-df['fips'] = df['fips_int'].apply(find_fips)
-# df['iso_alpha_3'] = df['country'].apply(find_iso)
+df['fips'] = df['fips'].apply(find_fips)
 
-date_list = list(df.columns)
-
-df = melt(df, date_list)
-
-print(df)
+df = pd.melt(df, id_vars=['fips','county'], value_vars=date_list, var_name='date', value_name='cases')
 
 map = px.choropleth(df,
-                    fips='fips',
-                    animation_frame='variable',
-                    color='value',
+                    geojson=counties,
+                    locations='fips',
+                    animation_frame='date',
+                    color='cases',
                     hover_name='county',
                     color_continuous_scale='Reds',
-                    range_color=[0, 2000],
+                    range_color=[0, 22000],
                     scope='usa'
                     )
+map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+map.update_layout(coloraxis_colorbar=dict(
+    thicknessmode="pixels", thickness=10,
+    lenmode="pixels", len=400,
+    yanchor="top", y=0.8,
+    ticks="outside", ticksuffix=" ",
+    dtick=5000
+))
 
 map.show()
-map.write_html("example_map.html")
+map.write_html("covid19-us-counties-interactive-data.html")
