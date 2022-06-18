@@ -1,25 +1,20 @@
 from datetime import date
-# import dash
-# from dash import dcc
-# from dash import html
-# import plotly.graph_objects as go
 import plotly.express as px
-# from dash.dependencies import Input, Output
 import pandas as pd
-# import addfips
-
-# from urllib.request import urlopen
 import json
 
+# load geo json data
 with open('geojson-counties-fips.json') as response:
     counties = json.load(response)
 
+# load us county covid confirmed cases csv data
 def loadData(fileName):
     df = pd.read_csv(fileName)
     df = df.drop(columns=['UID','iso2','iso3','code3','Province_State','Combined_Key','Country_Region','Lat','Long_'])
     df = df.groupby(['FIPS', 'Admin2']).agg('sum')
     return df
 
+# format county fips
 def find_fips(name):
     try:
         return str(int(name)).zfill(5)
@@ -29,14 +24,15 @@ def find_fips(name):
 df = loadData('time_series_covid19_confirmed_US.csv')
 
 date_list1 = list(df.columns)
-date_list = date_list1[::len(date_list1)//24]
+date_list = date_list1[::len(date_list1)//24] # selection of dates
 
-df['fips'] = df.index.get_level_values('FIPS')
-df['county'] = df.index.get_level_values('Admin2')
+df['fips'] = df.index.get_level_values('FIPS') # copy fips index values to new column 'fips'
+df['county'] = df.index.get_level_values('Admin2') # copy county name index calues to new column 'county'
 df['fips'] = df['fips'].apply(find_fips)
 
-df = pd.melt(df, id_vars=['fips','county'], value_vars=date_list, var_name='date', value_name='cases')
+df = pd.melt(df, id_vars=['fips','county'], value_vars=date_list, var_name='date', value_name='cases') # unpivot dataframe from wide format to long format
 
+# generate choropleth map
 map = px.choropleth(df,
                     geojson=counties,
                     locations='fips',
@@ -49,6 +45,7 @@ map = px.choropleth(df,
                     )
 map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
+# improve legend
 map.update_layout(coloraxis_colorbar=dict(
     thicknessmode="pixels", thickness=10,
     lenmode="pixels", len=400,
