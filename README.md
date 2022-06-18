@@ -1,4 +1,4 @@
-# Covid19-USA-County-Data-Visualization
+# COVID19-USA-County-Data-Visualization
 
 Presenting Covid 19 confirmed cases in US counties through visual map. Covid 19 data collected from the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University database repository. 
 
