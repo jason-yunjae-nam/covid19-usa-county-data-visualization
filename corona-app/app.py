@@ -8,8 +8,8 @@ with open('geojson-counties-fips.json') as response:
     counties = json.load(response)
 
 # load us county covid confirmed cases csv data
-def loadData(fileName):
-    df = pd.read_csv(fileName)
+def loadData(dataURL):
+    df = pd.read_csv(dataURL)
     df = df.drop(columns=['UID','iso2','iso3','code3','Province_State','Combined_Key','Country_Region','Lat','Long_'])
     df = df.groupby(['FIPS', 'Admin2']).agg('sum')
     return df
@@ -21,7 +21,7 @@ def find_fips(name):
     except:
         return None
 
-df = loadData('time_series_covid19_confirmed_US.csv')
+df = loadData('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv')
 
 date_list1 = list(df.columns)
 date_list = date_list1[::len(date_list1)//24] # selection of dates
